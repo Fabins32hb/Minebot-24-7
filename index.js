@@ -4,7 +4,7 @@ const http = require("http");
 const config = {
     host: process.env.HOST || "World-of-Gods32.aternos.me",
     port: Number(process.env.PORT_MC || 11978),
-    username: process.env.USERNAME || "Neguin das afk",
+    username: process.env.USERNAME || "Neguin_das_afk",
     auth: "offline",
     version: "1.21.11",
     hideErrors: true
