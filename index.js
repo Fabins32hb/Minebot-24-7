@@ -4,17 +4,21 @@ const http = require("http");
 const config = {
     host: process.env.HOST || "World-of-Gods32.aternos.me",
     port: Number(process.env.PORT_MC || 11978),
-    username: process.env.USERNAME || "Neguin_das_afk",
+    username: process.env.USERNAME || "NeguinDasAFK",
     auth: "offline",
-    version: "1.21.11",
-    hideErrors: true
+    version: false, // deixa detectar automático (mais seguro pra testar)
 };
 
 let bot = null;
 let reconnecting = false;
 let antiAfkInterval = null;
 let reconnectAttempts = 0;
-const MAX_RECONNECT_DELAY = 60000; // máximo 1 minuto entre tentativas
+const MAX_RECONNECT_DELAY = 60000;
+
+function log(msg) {
+    const time = new Date().toLocaleString("pt-BR");
+    console.log(`[${time}] ${msg}`);
+}
 
 function clearAntiAfk() {
     if (antiAfkInterval) {
@@ -24,7 +28,6 @@ function clearAntiAfk() {
 }
 
 function getReconnectDelay() {
-    // backoff: 5s, 10s, 20s, 40s... até 60s
     const delay = Math.min(5000 * Math.pow(2, reconnectAttempts), MAX_RECONNECT_DELAY);
     reconnectAttempts++;
     return delay;
@@ -40,24 +43,40 @@ function connect() {
     }
 
     clearAntiAfk();
-    console.log(`[${new Date().toLocaleTimeString()}] Conectando...`);
+    log(`[${new Date().toLocaleTimeString()}] Conectando...`);
 
     try {
         bot = mc.createClient(config);
     } catch (err) {
-        console.log("Erro:", err.message);
+        log(`Erro ao criar client: ${err.message}`);
         scheduleReconnect();
         return;
     }
 
+    // ===== LOGS DE DEPURAÇÃO (muito importantes) =====
+    bot.on("connect", () => {
+        log("DEBUG → TCP conectado com sucesso");
+    });
+
+    bot.on("state", (newState, oldState) => {
+        log(`DEBUG → Estado mudou: ${oldState} → ${newState}`);
+    });
+
+    bot.on("packet", (data, meta) => {
+        // só mostra pacotes importantes pra não floodar
+        if (["keep_alive", "login", "success", "disconnect", "kick_disconnect", "set_compression"].includes(meta.name)) {
+            log(`DEBUG → Pacote recebido: ${meta.name}`);
+        }
+    });
+
     bot.on("login", () => {
         reconnecting = false;
-        reconnectAttempts = 0; // resetou porque conectou
-        console.log("✅ Neguin das afk entrou no jogo!");
+        reconnectAttempts = 0;
+        log("✅ Neguin das afk entrou no jogo!");
     });
 
     bot.on("spawn", () => {
-        console.log("Neguin das afk comeu o frango dus kfc!");
+        log("Neguin das afk comeu o frango dus kfc!");
 
         clearAntiAfk();
 
@@ -65,37 +84,37 @@ function connect() {
             if (!bot || bot.state !== mc.states.PLAY) return;
 
             try {
-                // olha pra um lado aleatório
                 bot.write("look", {
                     yaw: Math.random() * Math.PI * 2,
                     pitch: (Math.random() - 0.5) * 0.5,
                     onGround: true
                 });
 
-                // às vezes dá um swing de braço (parece mais humano)
                 if (Math.random() < 0.3) {
                     bot.write("arm_animation", { hand: 0 });
                 }
             } catch (_) {}
-        }, 45000); // a cada 45 segundos
+        }, 45000);
     });
 
     bot.on("chat", (packet) => {
-        try {
-            console.log(`[CHAT] ${packet.message}`);
-        } catch (_) {}
+        log(`[CHAT] ${packet.message}`);
     });
 
     bot.on("kick_disconnect", (reason) => {
-        console.log("❌ Neguin das afk foi molestado:", reason);
+        log(`❌ Neguin das afk foi molestado: ${JSON.stringify(reason)}`);
+    });
+
+    bot.on("disconnect", (packet) => {
+        log(`DEBUG → Pacote disconnect: ${JSON.stringify(packet)}`);
     });
 
     bot.on("error", (err) => {
-        console.log("Erro:", err.message || err);
+        log(`Erro: ${err.message || err}`);
     });
 
     bot.on("end", (reason) => {
-        console.log("🔄 Neguin das afk saiu do jogo.");
+        log(`🔄 Neguin das afk saiu do jogo. Motivo: ${reason || "desconhecido"}`);
         clearAntiAfk();
         scheduleReconnect();
     });
@@ -106,34 +125,33 @@ function scheduleReconnect() {
     reconnecting = true;
 
     const delay = getReconnectDelay();
+    log(`Reconectando em ${Math.round(delay / 1000)}s...`);
 
     setTimeout(() => {
-        console.log("Tentando des-assar o cu do Neguin das afk...");
+        log("Tentando des-assar o cu do Neguin das afk...");
         reconnecting = false;
         connect();
     }, delay);
 }
 
-// ====== HTTP serverzinho só pra Render não reclamar de porta ======
+// ===== HTTP pro Render =====
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": "text/plain" });
-    res.end("Neguin das afk ta rebolano lentin prus crias 🍗🍗");
+    res.end("Neguin das afk tá online e comendo frango 🍗");
 }).listen(PORT, () => {
-    console.log(`HTTP rodando na porta ${PORT} (só pra Render não chorar)`);
+    log(`HTTP rodando na porta ${PORT} (só pra Render não chorar)`);
 });
 
-// ====== Inicia o bot ======
+// ===== Inicia =====
 connect();
 
-// ====== Shutdown limpo ======
+// ===== Shutdown limpo =====
 function shutdown() {
-    console.log("Encerrando...");
+    log("Encerrando...");
     clearAntiAfk();
     if (bot) {
-        try {
-            bot.end();
-        } catch (_) {}
+        try { bot.end(); } catch (_) {}
     }
     process.exit(0);
 }
@@ -142,5 +160,9 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
 process.on("uncaughtException", (err) => {
-    console.log("Erro:", err.message);
+    log(`uncaughtException: ${err.message}`);
+});
+
+process.on("unhandledRejection", (err) => {
+    log(`unhandledRejection: ${err}`);
 });
