@@ -1,25 +1,12 @@
 {
-  "name": "neguin-das-afk",
+  "name": "aternos-bot",
   "version": "1.0.0",
-  "description": "Bot anti-AFK pro servidor World-of-Gods32 (Aternos)",
+  "description": "Minecraft bot",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch index.js"
+    "start": "node index.js"
   },
-  "keywords": [
-    "minecraft",
-    "bot",
-    "anti-afk",
-    "aternos"
-  ],
-  "author": "",
-  "license": "MIT",
-  "private": true,
   "dependencies": {
-    "minecraft-protocol": "^1.66.2"
-  },
-  "engines": {
-    "node": ">=18"
+    "mineflayer": "^4.31.0"
   }
 }
