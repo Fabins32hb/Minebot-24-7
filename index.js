@@ -1,23 +1,25 @@
 const mineflayer = require('mineflayer')
 
+const config = {
+  host: 'World-of-Gods32.aternos.me:11978',
+  port: 25565,
+  username: 'NeguinDasAFK',
+  version: '1.21.11'
+}
+
 function criarBot() {
-  const bot = mineflayer.createBot({
-    host: process.env.MC_HOST,
-    port: Number(process.env.MC_PORT),
-    username: process.env.MC_USERNAME,
-    version: '1.21.11'
-  })
+  console.log('Conectando ao servidor...')
+
+  const bot = mineflayer.createBot(config)
 
   bot.once('spawn', () => {
-    console.log('Bot entrou no servidor!')
-  })
-
-  bot.on('chat', (username, message) => {
-    console.log(`<${username}> ${message}`)
+    console.log('================================')
+    console.log('BOT ENTROU NO SERVIDOR!')
+    console.log('================================')
   })
 
   bot.on('kicked', (reason) => {
-    console.log('Bot foi expulso:', reason)
+    console.log('Bot foi kickado:', reason)
   })
 
   bot.on('error', (err) => {
@@ -25,8 +27,12 @@ function criarBot() {
   })
 
   bot.on('end', () => {
-    console.log('Bot desconectou. Reconectando em 10 segundos...')
-    setTimeout(criarBot, 10000)
+    console.log('Bot desconectou.')
+    console.log('Tentando reconectar em 10 segundos...')
+
+    setTimeout(() => {
+      criarBot()
+    }, 10000)
   })
 }
 
